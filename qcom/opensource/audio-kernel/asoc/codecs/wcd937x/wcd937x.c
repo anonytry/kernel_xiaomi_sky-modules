@@ -1025,6 +1025,18 @@ static int wcd937x_codec_enable_hphl_pa(struct snd_soc_dapm_widget *w,
 	return ret;
 }
 
+extern int aw87xxx_set_profile(int dev_index, char *profile);
+
+enum aw87xxx_dev_index {
+	AW_DEV_0 = 0,
+	AW_DEV_1 = 1,
+};
+
+/* copy from aw_acf_bin.c */
+static char *aw_profile[] = {"Music", "Voice", "Voip",
+		"Ringtone", "Ringtone_hs", "Lowpower", "Bypass", "Mmi",
+		"Fm", "Notification", "Receiver", "Off"};
+
 static int wcd937x_codec_enable_aux_pa(struct snd_soc_dapm_widget *w,
 				       struct snd_kcontrol *kcontrol,
 				       int event)
@@ -1057,6 +1069,10 @@ static int wcd937x_codec_enable_aux_pa(struct snd_soc_dapm_widget *w,
 						SLV_BOLERO_EVT_RX_MUTE,
 						(WCD_RX3 << 0x10));
 		wcd_enable_irq(&wcd937x->irq_info, WCD937X_IRQ_AUX_PDM_WD_INT);
+          	ret = aw87xxx_set_profile(AW_DEV_0, aw_profile[0]);
+	        if (ret < 0) {
+			return -EPERM;
+        	}
 		break;
 	case SND_SOC_DAPM_PRE_PMD:
 		wcd_disable_irq(&wcd937x->irq_info, WCD937X_IRQ_AUX_PDM_WD_INT);
@@ -1064,6 +1080,10 @@ static int wcd937x_codec_enable_aux_pa(struct snd_soc_dapm_widget *w,
 			wcd937x->update_wcd_event(wcd937x->handle,
 						SLV_BOLERO_EVT_RX_MUTE,
 						(WCD_RX3 << 0x10 | 0x1));
+                ret = aw87xxx_set_profile(AW_DEV_0, aw_profile[11]);
+                if (ret < 0) {
+                        return -EPERM;
+                }
 		break;
 	case SND_SOC_DAPM_POST_PMD:
 		/* Add delay as per hw requirement */
@@ -2962,6 +2982,8 @@ done:
 	return rc;
 }
 
+extern int aw87xxx_add_codec_controls(void *codec);
+
 static int wcd937x_soc_codec_probe(struct snd_soc_component *component)
 {
 	struct wcd937x_priv *wcd937x = snd_soc_component_get_drvdata(component);
@@ -3069,6 +3091,14 @@ static int wcd937x_soc_codec_probe(struct snd_soc_component *component)
 			return ret;
 		}
 	}
+
+        ret = aw87xxx_add_codec_controls(component);
+        if (ret < 0) {
+                pr_err("%s: aw87xxx_add_codec_controls failed, err %d\n",
+                        __func__, ret);
+                goto err_hwdep;
+        }
+
 	return ret;
 
 err_hwdep:
