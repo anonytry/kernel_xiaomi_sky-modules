@@ -154,7 +154,7 @@ static int cam_eeprom_read_memory(struct cam_eeprom_ctrl_t *e_ctrl,
  *
  * Returns success or failure
  */
-static int cam_eeprom_power_up(struct cam_eeprom_ctrl_t *e_ctrl,
+int cam_eeprom_power_up(struct cam_eeprom_ctrl_t *e_ctrl,
 	struct cam_sensor_power_ctrl_t *power_info)
 {
 	int32_t                 rc = 0;
@@ -212,7 +212,7 @@ cci_failure:
  *
  * Returns success or failure
  */
-static int cam_eeprom_power_down(struct cam_eeprom_ctrl_t *e_ctrl)
+int cam_eeprom_power_down(struct cam_eeprom_ctrl_t *e_ctrl)
 {
 	struct cam_sensor_power_ctrl_t *power_info;
 	struct cam_hw_soc_info         *soc_info;

@@ -9,6 +9,189 @@
 #include "cam_eeprom_core.h"
 #include "cam_debug_util.h"
 #include "camera_main.h"
+#include "qvga_setting.h"
+
+static int    qvga_state = 0;
+static struct platform_device *pdev_qvga;
+
+static int get_qvga_lux_data(struct cam_eeprom_ctrl_t *e_ctrl){
+	struct cam_sensor_i2c_reg_array    i2c_reg_array = {0};
+	struct cam_sensor_i2c_reg_setting  i2c_reg_settings = {0};
+	uint32_t lux = 0;
+	int rc = 0;
+	i2c_reg_settings.addr_type = CAMERA_SENSOR_I2C_TYPE_BYTE;
+	i2c_reg_settings.data_type = CAMERA_SENSOR_I2C_TYPE_BYTE;
+	i2c_reg_settings.size = 1;
+	i2c_reg_array.reg_addr = QVGA_LUX_DATA_EN_REG;
+	i2c_reg_array.reg_data = QVGA_LUX_DATA_EN_REG_VALUE;
+	i2c_reg_array.delay = 5;
+	i2c_reg_settings.reg_setting = &i2c_reg_array;
+	rc = camera_io_dev_write(&(e_ctrl->io_master_info), &i2c_reg_settings);
+	if (rc) {
+		CAM_ERR(CAM_EEPROM, "write init params failed rc %d", rc);
+		return rc;
+	}
+
+	camera_io_dev_read( &(e_ctrl->io_master_info),
+				QVGA_LUX_DATA_REG, &lux, CAMERA_SENSOR_I2C_TYPE_BYTE,
+				CAMERA_SENSOR_I2C_TYPE_BYTE);
+	CAM_INFO(CAM_EEPROM, "lux: 0x%x", lux);
+	return lux;
+}
+
+static void qvga_hw_off_reset(struct cam_eeprom_ctrl_t *e_ctrl){
+
+	struct eeprom_memory_map_init_write_params *pWriteParams = NULL;
+	struct cam_sensor_i2c_reg_array    i2c_reg_array = {0};
+	struct cam_sensor_i2c_reg_setting  i2c_reg_settings = {0};
+	uint32_t count_write;
+	int rc = 0;
+	pWriteParams = &qvga_hw_off_reset_setting;
+	for(count_write=0;count_write < pWriteParams->memory_map_size; count_write++) {
+		i2c_reg_settings.addr_type = pWriteParams->mem_settings[count_write].addr_type;
+		i2c_reg_settings.data_type = pWriteParams->mem_settings[count_write].data_type;
+		i2c_reg_settings.size = 1;
+		i2c_reg_array.reg_addr = pWriteParams->mem_settings[count_write].reg_addr;
+		i2c_reg_array.reg_data = pWriteParams->mem_settings[count_write].reg_data;
+		i2c_reg_array.delay = pWriteParams->mem_settings[count_write].delay;
+		i2c_reg_settings.reg_setting = &i2c_reg_array;
+
+		CAM_DBG(CAM_EEPROM, "count_write %d,%d %d", count_write,i2c_reg_settings.addr_type,i2c_reg_settings.data_type);
+		CAM_DBG(CAM_EEPROM, "count_write %d,0x%x 0x%x", count_write,i2c_reg_array.reg_addr,i2c_reg_array.reg_data);
+		rc = camera_io_dev_write(&(e_ctrl->io_master_info), &i2c_reg_settings);
+		if (rc) {
+			CAM_ERR(CAM_EEPROM, "write init params failed rc %d", rc);
+			return ;
+		}
+	}
+	return ;
+}
+
+static void qvga_hw_on_reset(struct cam_eeprom_ctrl_t *e_ctrl){
+
+	struct eeprom_memory_map_init_write_params *pWriteParams = NULL;
+	struct cam_sensor_i2c_reg_array    i2c_reg_array = {0};
+	struct cam_sensor_i2c_reg_setting  i2c_reg_settings = {0};
+	uint32_t count_write;
+	int rc = 0;
+	pWriteParams = &qvga_hw_on_reset_setting;
+	for(count_write=0;count_write < pWriteParams->memory_map_size; count_write++) {
+		i2c_reg_settings.addr_type = pWriteParams->mem_settings[count_write].addr_type;
+		i2c_reg_settings.data_type = pWriteParams->mem_settings[count_write].data_type;
+		i2c_reg_settings.size = 1;
+		i2c_reg_array.reg_addr = pWriteParams->mem_settings[count_write].reg_addr;
+		i2c_reg_array.reg_data = pWriteParams->mem_settings[count_write].reg_data;
+		i2c_reg_array.delay = pWriteParams->mem_settings[count_write].delay;
+		i2c_reg_settings.reg_setting = &i2c_reg_array;
+
+		CAM_DBG(CAM_EEPROM, "count_write %d,%d %d", count_write,i2c_reg_settings.addr_type,i2c_reg_settings.data_type);
+		CAM_DBG(CAM_EEPROM, "count_write %d,0x%x 0x%x", count_write,i2c_reg_array.reg_addr,i2c_reg_array.reg_data);
+		rc = camera_io_dev_write(&(e_ctrl->io_master_info), &i2c_reg_settings);
+		if (rc) {
+			CAM_ERR(CAM_EEPROM, "write init params failed rc %d", rc);
+			return ;
+		}
+	}
+	return ;
+}
+
+static void init_qvga_setting(struct cam_eeprom_ctrl_t *e_ctrl){
+
+	struct eeprom_memory_map_init_write_params *pWriteParams = NULL;
+	struct cam_sensor_i2c_reg_array    i2c_reg_array = {0};
+	struct cam_sensor_i2c_reg_setting  i2c_reg_settings = {0};
+	uint32_t count_write;
+	int rc = 0;
+	pWriteParams = &qvga_setting;
+	for(count_write=0;count_write < pWriteParams->memory_map_size; count_write++) {
+		i2c_reg_settings.addr_type = pWriteParams->mem_settings[count_write].addr_type;
+		i2c_reg_settings.data_type = pWriteParams->mem_settings[count_write].data_type;
+		i2c_reg_settings.size = 1;
+		i2c_reg_array.reg_addr = pWriteParams->mem_settings[count_write].reg_addr;
+		i2c_reg_array.reg_data = pWriteParams->mem_settings[count_write].reg_data;
+		i2c_reg_array.delay = pWriteParams->mem_settings[count_write].delay;
+		i2c_reg_settings.reg_setting = &i2c_reg_array;
+
+		CAM_DBG(CAM_EEPROM, "count_write %d,%d %d", count_write,i2c_reg_settings.addr_type,i2c_reg_settings.data_type);
+		CAM_DBG(CAM_EEPROM, "count_write %d,0x%x 0x%x", count_write,i2c_reg_array.reg_addr,i2c_reg_array.reg_data);
+		rc = camera_io_dev_write(&(e_ctrl->io_master_info), &i2c_reg_settings);
+		if (rc) {
+			CAM_ERR(CAM_EEPROM, "write init params failed rc %d", rc);
+			return ;
+		}
+	}
+	return ;
+}
+
+static ssize_t show_qvga_lux_data(struct device *dev, struct device_attribute *attr, char *buf)
+{
+	struct cam_eeprom_ctrl_t       *e_ctrl = NULL;
+	uint32_t data = 0;
+	e_ctrl = platform_get_drvdata(pdev_qvga);
+	data = get_qvga_lux_data(e_ctrl);
+	CAM_INFO(CAM_EEPROM, "torch:get data= %d\n", data);
+	return sprintf(buf, "%d\n", data);
+}
+
+static ssize_t store_qvga_opt(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
+{
+	struct cam_eeprom_ctrl_t       *e_ctrl = NULL;
+	struct cam_eeprom_soc_private  *soc_private;
+	struct cam_sensor_power_ctrl_t *power_info;
+	uint32_t                       chipid;
+
+	qvga_state = simple_strtol(buf, NULL, 10);
+	CAM_DBG(CAM_EEPROM, "torch:set qvga_state= %d\n", qvga_state);
+	e_ctrl = platform_get_drvdata(pdev_qvga);
+
+	soc_private = (struct cam_eeprom_soc_private *)e_ctrl->soc_info.soc_private;
+	power_info = &soc_private->power_info;
+
+	switch(qvga_state){
+		case QVGA_OPEN:
+			cam_eeprom_power_up(e_ctrl, power_info);
+			camera_io_dev_read(&e_ctrl->io_master_info,QVGA_SLAVE_ADDR_REG,&chipid, CAMERA_SENSOR_I2C_TYPE_BYTE,CAMERA_SENSOR_I2C_TYPE_BYTE);
+			qvga_hw_on_reset(e_ctrl);
+			init_qvga_setting(e_ctrl);
+			CAM_INFO(CAM_EEPROM, "read chipid 0x%x",chipid);
+			break;
+		case QVGA_GET_LUX:
+			get_qvga_lux_data(e_ctrl);
+			break;
+		case QVGA_CLOSE:
+		default:
+			qvga_hw_off_reset(e_ctrl);
+			cam_eeprom_power_down(e_ctrl);
+			camera_io_dev_read(&e_ctrl->io_master_info,QVGA_SLAVE_ADDR_REG,&chipid, CAMERA_SENSOR_I2C_TYPE_BYTE,CAMERA_SENSOR_I2C_TYPE_BYTE);
+			CAM_DBG(CAM_EEPROM, "read chipid 0x%x",chipid);
+			break;
+	}
+	return count;
+}
+
+static DEVICE_ATTR(rear_qvga, 0664, show_qvga_lux_data, store_qvga_opt);
+
+static void cam_qvga_creat(void)
+{
+	static struct class *qvga_class;
+	static struct device *qvga_device;
+
+	qvga_class = class_create(THIS_MODULE, "qvga");   ///sys/class/qvga
+	if (IS_ERR(qvga_class)) {
+		CAM_ERR(CAM_EEPROM, "qvga Unable to create class, err = %d\n",
+			(int)PTR_ERR(qvga_class));
+		return ;
+	}
+	qvga_device =
+		device_create(qvga_class, NULL, MKDEV(0,3), NULL, QVGA_DEVNAME);  ///sys/class/qvga/qvga/
+	if (NULL == qvga_device) {
+		CAM_ERR(CAM_EEPROM, "qvga device_create fail ~");
+	}
+	if (device_create_file(qvga_device,&dev_attr_rear_qvga)) { ///sys/class/qvga/qvga/rear_qvga
+		CAM_ERR(CAM_EEPROM, "qvga device_create_file fail!\n");
+	}
+	return;
+}
 
 static int cam_eeprom_subdev_close_internal(struct v4l2_subdev *sd,
 	struct v4l2_subdev_fh *fh)
@@ -545,6 +728,12 @@ static int cam_eeprom_component_bind(struct device *dev,
 	platform_set_drvdata(pdev, e_ctrl);
 	e_ctrl->cam_eeprom_state = CAM_EEPROM_INIT;
 	CAM_DBG(CAM_EEPROM, "Component bound successfully");
+
+	if(soc_private->i2c_info.slave_addr == QVGA_SLAVE_ADDR ){
+		cam_qvga_creat();
+		pdev_qvga = pdev;
+		CAM_INFO(CAM_EEPROM, "QVGA Component bound successfully %x",soc_private->i2c_info.slave_addr);
+	}
 
 	return rc;
 free_soc:

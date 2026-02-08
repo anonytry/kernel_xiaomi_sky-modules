@@ -1006,15 +1006,6 @@ int32_t msm_camera_fill_vreg_params(
 					CAM_DBG(CAM_SENSOR,
 						"i: %d j: %d cam_vdig", i, j);
 					power_setting[i].seq_val = j;
-
-					if (VALIDATE_VOLTAGE(
-						soc_info->rgltr_min_volt[j],
-						soc_info->rgltr_max_volt[j],
-						power_setting[i].config_val)) {
-						soc_info->rgltr_min_volt[j] =
-						soc_info->rgltr_max_volt[j] =
-						power_setting[i].config_val;
-					}
 					break;
 				}
 			}
@@ -1030,15 +1021,6 @@ int32_t msm_camera_fill_vreg_params(
 					CAM_DBG(CAM_SENSOR,
 						"i: %d j: %d cam_vio", i, j);
 					power_setting[i].seq_val = j;
-
-					if (VALIDATE_VOLTAGE(
-						soc_info->rgltr_min_volt[j],
-						soc_info->rgltr_max_volt[j],
-						power_setting[i].config_val)) {
-						soc_info->rgltr_min_volt[j] =
-						soc_info->rgltr_max_volt[j] =
-						power_setting[i].config_val;
-					}
 					break;
 				}
 
@@ -1055,15 +1037,6 @@ int32_t msm_camera_fill_vreg_params(
 					CAM_DBG(CAM_SENSOR,
 						"i: %d j: %d cam_vana", i, j);
 					power_setting[i].seq_val = j;
-
-					if (VALIDATE_VOLTAGE(
-						soc_info->rgltr_min_volt[j],
-						soc_info->rgltr_max_volt[j],
-						power_setting[i].config_val)) {
-						soc_info->rgltr_min_volt[j] =
-						soc_info->rgltr_max_volt[j] =
-						power_setting[i].config_val;
-					}
 					break;
 				}
 
@@ -1079,15 +1052,6 @@ int32_t msm_camera_fill_vreg_params(
 					CAM_DBG(CAM_SENSOR,
 						"i: %d j: %d cam_vana1", i, j);
 					power_setting[i].seq_val = j;
-
-					if (VALIDATE_VOLTAGE(
-						soc_info->rgltr_min_volt[j],
-						soc_info->rgltr_max_volt[j],
-						power_setting[i].config_val)) {
-						soc_info->rgltr_min_volt[j] =
-						soc_info->rgltr_max_volt[j] =
-						power_setting[i].config_val;
-					}
 					break;
 				}
 			}
@@ -1103,16 +1067,6 @@ int32_t msm_camera_fill_vreg_params(
 					CAM_DBG(CAM_SENSOR,
 						"i: %d j: %d cam_vaf", i, j);
 					power_setting[i].seq_val = j;
-
-					if (VALIDATE_VOLTAGE(
-						soc_info->rgltr_min_volt[j],
-						soc_info->rgltr_max_volt[j],
-						power_setting[i].config_val)) {
-						soc_info->rgltr_min_volt[j] =
-						soc_info->rgltr_max_volt[j] =
-						power_setting[i].config_val;
-					}
-
 					break;
 				}
 
@@ -1129,15 +1083,6 @@ int32_t msm_camera_fill_vreg_params(
 					CAM_DBG(CAM_SENSOR,
 						"i:%d j:%d cam_vcustom1", i, j);
 					power_setting[i].seq_val = j;
-
-					if (VALIDATE_VOLTAGE(
-						soc_info->rgltr_min_volt[j],
-						soc_info->rgltr_max_volt[j],
-						power_setting[i].config_val)) {
-						soc_info->rgltr_min_volt[j] =
-						soc_info->rgltr_max_volt[j] =
-						power_setting[i].config_val;
-					}
 					break;
 				}
 
@@ -1153,15 +1098,6 @@ int32_t msm_camera_fill_vreg_params(
 					CAM_DBG(CAM_SENSOR,
 						"i:%d j:%d cam_vcustom2", i, j);
 					power_setting[i].seq_val = j;
-
-					if (VALIDATE_VOLTAGE(
-						soc_info->rgltr_min_volt[j],
-						soc_info->rgltr_max_volt[j],
-						power_setting[i].config_val)) {
-						soc_info->rgltr_min_volt[j] =
-						soc_info->rgltr_max_volt[j] =
-						power_setting[i].config_val;
-					}
 					break;
 				}
 			}
@@ -1583,6 +1519,8 @@ int cam_get_dt_power_setting_data(struct device_node *of_node,
 			ps[i].seq_type = SENSOR_VANA1;
 		} else if (!strcmp(seq_name, "cam_clk")) {
 			ps[i].seq_type = SENSOR_MCLK;
+		} else if (!strcmp(seq_name, "cam_vana2")) {
+			ps[i].seq_type = SENSOR_CUSTOM_GPIO1;
 		} else {
 			CAM_ERR(CAM_SENSOR, "unrecognized seq-type %s",
 				seq_name);
@@ -2181,13 +2119,26 @@ int cam_sensor_core_power_up(struct cam_sensor_power_ctrl_t *ctrl,
 					goto power_up_failed;
 				}
 
-				rc =  cam_soc_util_regulator_enable(
-					soc_info->rgltr[vreg_idx],
-					soc_info->rgltr_name[vreg_idx],
+				if (VALIDATE_VOLTAGE(
 					soc_info->rgltr_min_volt[vreg_idx],
 					soc_info->rgltr_max_volt[vreg_idx],
-					soc_info->rgltr_op_mode[vreg_idx],
-					soc_info->rgltr_delay[vreg_idx]);
+					power_setting->config_val)) {
+					rc =  cam_soc_util_regulator_enable(
+						soc_info->rgltr[vreg_idx],
+						soc_info->rgltr_name[vreg_idx],
+						power_setting->config_val,
+						power_setting->config_val,
+						soc_info->rgltr_op_mode[vreg_idx],
+						soc_info->rgltr_delay[vreg_idx]);
+				} else {
+					rc =  cam_soc_util_regulator_enable(
+						soc_info->rgltr[vreg_idx],
+						soc_info->rgltr_name[vreg_idx],
+						soc_info->rgltr_min_volt[vreg_idx],
+						soc_info->rgltr_max_volt[vreg_idx],
+						soc_info->rgltr_op_mode[vreg_idx],
+						soc_info->rgltr_delay[vreg_idx]);
+				}
 				if (rc) {
 					CAM_ERR(CAM_SENSOR,
 						"Reg Enable failed for %s",

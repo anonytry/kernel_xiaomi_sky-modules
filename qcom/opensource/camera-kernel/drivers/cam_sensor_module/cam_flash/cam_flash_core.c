@@ -11,6 +11,51 @@
 #include "cam_res_mgr_api.h"
 #include "cam_common_util.h"
 #include "cam_packet_util.h"
+#include <linux/math64.h>
+
+
+#include <linux/gpio.h>
+#include <linux/of_gpio.h>
+#include <linux/of.h>
+void cam_gpio_flash_on(struct cam_flash_ctrl *flash_ctrl)
+{
+	int ret = 0;
+	ret = pinctrl_select_state(
+		flash_ctrl->pinctrl,
+		flash_ctrl->gpio_state_flash_on);
+	if (ret)
+		CAM_ERR(CAM_FLASH, "cannot set pin to active state");
+}
+
+void cam_gpio_flash_off(struct cam_flash_ctrl *flash_ctrl)
+{
+	int ret = 0;
+	ret = pinctrl_select_state(
+		flash_ctrl->pinctrl,
+		flash_ctrl->gpio_state_flash_off);
+	if (ret)
+		CAM_ERR(CAM_FLASH, "cannot set pin to active state");
+}
+
+void cam_gpio_torch_on(struct cam_flash_ctrl *flash_ctrl)
+{
+	int ret = 0;
+	ret = pinctrl_select_state(
+		flash_ctrl->pinctrl,
+		flash_ctrl->gpio_state_torch_on);
+	if (ret)
+		CAM_ERR(CAM_FLASH, "cannot set pin to active state");
+}
+
+void cam_gpio_torch_off(struct cam_flash_ctrl *flash_ctrl)
+{
+	int ret = 0;
+	ret = pinctrl_select_state(
+		flash_ctrl->pinctrl,
+		flash_ctrl->gpio_state_torch_off);
+	if (ret)
+		CAM_ERR(CAM_FLASH, "cannot set pin to active state");
+}
 
 static int cam_flash_prepare(struct cam_flash_ctrl *flash_ctrl,
 	bool regulator_enable)
@@ -573,6 +618,9 @@ int cam_flash_off(struct cam_flash_ctrl *flash_ctrl)
 		cam_res_mgr_led_trigger_event(flash_ctrl->switch_trigger,
 			(enum led_brightness)LED_SWITCH_OFF);
 
+	cam_gpio_torch_off(flash_ctrl);
+	cam_gpio_flash_off(flash_ctrl);
+
 	if ((flash_ctrl->i2c_data.streamoff_settings.is_settings_valid) &&
 		(flash_ctrl->i2c_data.streamoff_settings.request_id == 0)) {
 		flash_ctrl->apply_streamoff = true;
@@ -601,7 +649,7 @@ static int cam_flash_low(
 			cam_res_mgr_led_trigger_event(
 				flash_ctrl->flash_trigger[i],
 				LED_OFF);
-
+	cam_gpio_torch_on(flash_ctrl);
 	rc = cam_flash_ops(flash_ctrl, flash_data,
 		CAMERA_SENSOR_FLASH_OP_FIRELOW);
 	if (rc)
@@ -626,7 +674,8 @@ static int cam_flash_high(
 			cam_res_mgr_led_trigger_event(
 				flash_ctrl->torch_trigger[i],
 				LED_OFF);
-
+	cam_gpio_flash_on(flash_ctrl);
+	cam_gpio_torch_on(flash_ctrl);
 	rc = cam_flash_ops(flash_ctrl, flash_data,
 		CAMERA_SENSOR_FLASH_OP_FIREHIGH);
 	if (rc)

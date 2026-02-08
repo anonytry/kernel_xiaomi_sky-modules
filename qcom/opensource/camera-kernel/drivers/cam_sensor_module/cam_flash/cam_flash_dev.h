@@ -225,6 +225,11 @@ struct cam_flash_ctrl {
 	struct camera_io_master             io_master_info;
 	struct i2c_data_settings            i2c_data;
 	uint32_t                            last_flush_req;
+	struct pinctrl *pinctrl;
+	struct pinctrl_state *gpio_state_flash_on;
+	struct pinctrl_state *gpio_state_flash_off;
+	struct pinctrl_state *gpio_state_torch_on;
+	struct pinctrl_state *gpio_state_torch_off;
 	uint32_t                            streamoff_count;
 	int32_t                             apply_streamoff;
 };

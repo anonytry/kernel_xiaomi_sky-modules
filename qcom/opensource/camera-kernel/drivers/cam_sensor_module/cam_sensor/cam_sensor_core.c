@@ -12,7 +12,7 @@
 #include "cam_trace.h"
 #include "cam_common_util.h"
 #include "cam_packet_util.h"
-
+#include <linux/hardware_info.h>
 
 static int cam_sensor_update_req_mgr(
 	struct cam_sensor_ctrl_t *s_ctrl,
@@ -884,6 +884,31 @@ int cam_sensor_match_id(struct cam_sensor_ctrl_t *s_ctrl)
 				s_ctrl->sensor_name, chipid,
 				slave_info->sensor_id);
 		return -ENODEV;
+	}
+	if(slave_info->sensor_id == 0x38EE){
+		hardwareinfo_set_prop(HARDWARE_BACK_CAM,"m19_first_sunny_s5kjnssq33");
+		hardwareinfo_set_prop(HARDWARE_BACK_CAM_MOUDULE_ID,"sunny");
+	}else if((slave_info->sensor_id == 0x885A)&&(!strcmp("m19_sunny_ov8856", (char *)s_ctrl->sensor_name))){
+		hardwareinfo_set_prop(HARDWARE_FRONT_CAM,"m19_first_sunny_ov8856");
+		hardwareinfo_set_prop(HARDWARE_FRONT_CAM_MOUDULE_ID,"sunny");
+	}else if(slave_info->sensor_id == 0x559B){
+		hardwareinfo_set_prop(HARDWARE_FRONT_CAM,"m19_first_sunny_s5k5e9yu05");
+		hardwareinfo_set_prop(HARDWARE_FRONT_CAM_MOUDULE_ID,"sunny");
+	}else if(slave_info->sensor_id == 0x2680){
+		hardwareinfo_set_prop(HARDWARE_BACK_SUBCAM,"m19_first_sunny_ov2180");
+		hardwareinfo_set_prop(HARDWARE_BACK_SUBCAM_MODULEID,"sunny");
+	}else if(slave_info->sensor_id == 0x5044){
+		hardwareinfo_set_prop(HARDWARE_BACK_CAM,"m19_second_truly_ov50d40");
+		hardwareinfo_set_prop(HARDWARE_BACK_CAM_MOUDULE_ID,"truly");
+	}else if((slave_info->sensor_id == 0x885A)&&(!strcmp("m19_ofilm_ov8856", (char *)s_ctrl->sensor_name))){
+		hardwareinfo_set_prop(HARDWARE_FRONT_CAM,"m19_second_ofilm_ov8856");
+		hardwareinfo_set_prop(HARDWARE_FRONT_CAM_MOUDULE_ID,"ofilm");
+	}else if(slave_info->sensor_id == 0xee4B){
+		hardwareinfo_set_prop(HARDWARE_FRONT_CAM,"m19_second_truly_sc520cs");
+		hardwareinfo_set_prop(HARDWARE_FRONT_CAM_MOUDULE_ID,"truly");
+	}else if(slave_info->sensor_id == 0x002B){
+		hardwareinfo_set_prop(HARDWARE_BACK_SUBCAM,"m19_second_truly_ov02b10");
+		hardwareinfo_set_prop(HARDWARE_BACK_SUBCAM_MODULEID,"truly");
 	}
 	return rc;
 }
