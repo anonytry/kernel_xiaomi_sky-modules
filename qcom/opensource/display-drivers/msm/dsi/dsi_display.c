@@ -40,10 +40,18 @@
 u8 dbgfs_tx_cmd_buf[SZ_4K];
 static char dsi_display_primary[MAX_CMDLINE_PARAM_LEN];
 static char dsi_display_secondary[MAX_CMDLINE_PARAM_LEN];
+
+bool touch_priximity_enable = false;
+bool touch_gesture_enable = false;
+int m19_panel_id=0;
+
 static struct dsi_display_boot_param boot_displays[MAX_DSI_ACTIVE_DISPLAY] = {
 	{.boot_param = dsi_display_primary},
 	{.boot_param = dsi_display_secondary},
 };
+
+static int xiaomi_touch_notifier_callback(struct notifier_block *self,
+					unsigned long event, void *data);
 
 static void dsi_display_panel_id_notification(struct dsi_display *display);
 
@@ -6013,6 +6021,31 @@ static void dsi_display_firmware_display(const struct firmware *fw,
 	DSI_DEBUG("success\n");
 }
 
+static int xiaomi_touch_notifier_callback(struct notifier_block *self, unsigned long event, void *data)
+{
+	struct xiaomi_touch_notify_data  *evdata = data;
+
+	DSI_INFO("[LCD]touch priximity enable is %d,touch gesture enable is %d\n",evdata->ps_enable,evdata->gesture_enable);
+	if(event == XIAOMI_TOUCH_SENSOR_EVENT_PS_SWITCH) {
+		if (evdata->ps_enable == XIAOMI_TOUCH_SENSOR_PS_DISABLE) {
+			touch_priximity_enable = false;
+		} else if (evdata->ps_enable == XIAOMI_TOUCH_SENSOR_PS_ENABLE) {
+			touch_priximity_enable = true;
+		}
+	}
+	if(event == XIAOMI_TOUCH_GESTURE_EVENT_SWITCH) {
+		if (evdata->gesture_enable == XIAOMI_TOUCH_GESTURE_DISABLE) {
+			touch_gesture_enable = false;
+		} else if (evdata->gesture_enable == XIAOMI_TOUCH_GESTURE_ENABLE) {
+			touch_gesture_enable = true;
+		}
+	}
+	return 0;
+}
+
+extern void set_panel_name_gki(char *panel_name);
+extern void select_backlight_ic_mode(bool is_panel);
+
 int dsi_display_dev_probe(struct platform_device *pdev)
 {
 	struct dsi_display *display = NULL;
@@ -6082,6 +6115,18 @@ int dsi_display_dev_probe(struct platform_device *pdev)
 	boot_disp->node = pdev->dev.of_node;
 	boot_disp->disp = display;
 
+        set_panel_name_gki(boot_disp->name);
+	pr_info("Display: boot_disp->name:%s\n", boot_disp->name);
+
+	if (strstr(boot_disp->name, "m19_36_02_0a")) {
+	m19_panel_id = PANEL_36_02_0A;
+	} else if (strstr(boot_disp->name, "m19_42_03_0b")) {
+        m19_panel_id = PANEL_42_03_0B;
+	} else if (strstr(boot_disp->name, "m19_42_03_0c")) {
+        m19_panel_id = PANEL_42_03_0C;
+        }
+	select_backlight_ic_mode(m19_panel_id);
+
 	display->panel_node = panel_node;
 	display->pdev = pdev;
 	display->boot_disp = boot_disp;
@@ -6093,6 +6138,13 @@ int dsi_display_dev_probe(struct platform_device *pdev)
 	if (!dsi_display_validate_res(display)) {
 		rc = -EPROBE_DEFER;
 		DSI_ERR("resources required for display probe not present: rc=%d\n", rc);
+		goto end;
+	}
+
+	display->xiaomi_touch_notif.notifier_call = xiaomi_touch_notifier_callback;
+	rc = xiaomi_touch_notifier_register_client(&display->xiaomi_touch_notif);
+	if (rc) {
+		DSI_ERR("register xiaomi_panel_notif failed. ret=%d\n", rc);
 		goto end;
 	}
 
@@ -6160,6 +6212,9 @@ int dsi_display_dev_remove(struct platform_device *pdev)
 	}
 
 	(void)_dsi_display_dev_deinit(display);
+
+	if (xiaomi_touch_notifier_unregister_client(&display->xiaomi_touch_notif))
+	DSI_ERR("Error occurred while unregistering xiaomi_panel_notif.\n");
 
 	platform_set_drvdata(pdev, NULL);
 	devm_kfree(&pdev->dev, display);

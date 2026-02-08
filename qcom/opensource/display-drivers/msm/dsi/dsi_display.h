@@ -20,6 +20,7 @@
 #include "dsi_ctrl.h"
 #include "dsi_phy.h"
 #include "dsi_panel.h"
+#include <misc/xiaomi_touch_notifier.h>
 
 #define MAX_DSI_CTRLS_PER_DISPLAY             2
 #define DSI_CLIENT_NAME_SIZE		20
@@ -205,7 +206,7 @@ struct dsi_display {
 	struct drm_device *drm_dev;
 	struct drm_connector *drm_conn;
 	struct drm_connector *ext_conn;
-
+	struct notifier_block xiaomi_touch_notif;
 	const char *name;
 	const char *display_type;
 	struct list_head list;

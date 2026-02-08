@@ -69,6 +69,12 @@ enum dsi_backlight_type {
 	DSI_BACKLIGHT_MAX,
 };
 
+enum dsi_panel_id {
+	PANEL_36_02_0A = 0,
+	PANEL_42_03_0B,
+	PANEL_42_03_0C,
+};
+
 enum bl_update_flag {
 	BL_UPDATE_DELAY_UNTIL_FIRST_FRAME,
 	BL_UPDATE_NONE,

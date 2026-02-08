@@ -12,6 +12,8 @@
 #include <video/mipi_display.h>
 #include <misc/isl97900_led.h>
 
+#include <linux/ocp2131_bias.h>
+#include <misc/xiaomi_panel_notifier.h>
 #include "dsi_panel.h"
 #include "dsi_ctrl_hw.h"
 #include "dsi_parser.h"
@@ -40,6 +42,10 @@
 #define RSCC_MODE_THRESHOLD_TIME_US 40
 #define DCS_COMMAND_THRESHOLD_TIME_US 40
 
+static struct xiaomi_panel_notify_data g_notify_data;
+extern bool touch_priximity_enable;
+extern bool touch_gesture_enable;
+extern int m19_panel_id;
 static void dsi_dce_prepare_pps_header(char *buf, u32 pps_delay_ms)
 {
 	char *bp;
@@ -351,7 +357,7 @@ static int dsi_panel_set_pinctrl_state(struct dsi_panel *panel, bool enable)
 	return rc;
 }
 
-
+extern void ktd3136_reg_init(bool which_display);
 static int dsi_panel_power_on(struct dsi_panel *panel)
 {
 	int rc = 0;
@@ -368,7 +374,8 @@ static int dsi_panel_power_on(struct dsi_panel *panel)
 		DSI_ERR("[%s] failed to set pinctrl, rc=%d\n", panel->name, rc);
 		goto error_disable_vregs;
 	}
-
+	ocp2131_enable();
+	ktd3136_reg_init(m19_panel_id);
 	rc = dsi_panel_reset(panel);
 	if (rc) {
 		DSI_ERR("[%s] failed to reset panel, rc=%d\n", panel->name, rc);
@@ -650,6 +657,7 @@ static int dsi_panel_update_pwm_backlight(struct dsi_panel *panel,
 error:
 	return rc;
 }
+extern int ktd3136_bl_set_brightness(u32 bl_lvl);
 
 int dsi_panel_set_backlight(struct dsi_panel *panel, u32 bl_lvl)
 {
@@ -673,13 +681,14 @@ int dsi_panel_set_backlight(struct dsi_panel *panel, u32 bl_lvl)
 		rc = dsi_panel_update_pwm_backlight(panel, bl_lvl);
 		break;
 	case DSI_BACKLIGHT_I2C:
-		if (panel->rgb_left_led_node)
+/*		if (panel->rgb_left_led_node)
 			isl97900_led_event(panel->rgb_left_led_node,
 					0, bl_lvl);
 
 		if (panel->rgb_right_led_node)
 			isl97900_led_event(panel->rgb_right_led_node,
-					0, bl_lvl);
+					0, bl_lvl); */
+		rc = ktd3136_bl_set_brightness(bl_lvl);
 		break;
 	default:
 		DSI_ERR("Backlight type(%d) not supported\n", bl->type);
@@ -1941,6 +1950,7 @@ const char *cmd_set_prop_map[DSI_CMD_SET_MAX] = {
 	"qcom,mdss-dsi-post-mode-switch-on-command",
 	"qcom,mdss-dsi-qsync-on-commands",
 	"qcom,mdss-dsi-qsync-off-commands",
+	"qcom,proximity_pre-off-command",
 };
 
 const char *cmd_set_state_map[DSI_CMD_SET_MAX] = {
@@ -1969,6 +1979,7 @@ const char *cmd_set_state_map[DSI_CMD_SET_MAX] = {
 	"qcom,mdss-dsi-post-mode-switch-on-command-state",
 	"qcom,mdss-dsi-qsync-on-commands-state",
 	"qcom,mdss-dsi-qsync-off-commands-state",
+	"qcom,proximity_pre-off-command-state",
 };
 
 int dsi_panel_get_cmd_pkt_count(const char *data, u32 length, u32 *cnt)
@@ -4534,6 +4545,9 @@ int dsi_panel_prepare(struct dsi_panel *panel)
 		return -EINVAL;
 	}
 
+	g_notify_data.blank = XIAOMI_PANEL_BLANK_UNBLANK;
+	xiaomi_panel_notifier_call_chain(XIAOMI_PANEL_EARLY_EVENT_BLANK, &g_notify_data);
+
 	mutex_lock(&panel->panel_lock);
 
 	if (panel->lp11_init) {
@@ -4846,6 +4860,9 @@ int dsi_panel_enable(struct dsi_panel *panel)
 		return -EINVAL;
 	}
 
+	g_notify_data.blank = XIAOMI_PANEL_BLANK_UNBLANK;
+	xiaomi_panel_notifier_call_chain(XIAOMI_PANEL_NORMAL_EVENT_BLANK, &g_notify_data);
+
 	mutex_lock(&panel->panel_lock);
 
 	rc = dsi_panel_tx_cmd_set(panel, DSI_CMD_SET_ON);
@@ -4874,6 +4891,8 @@ int dsi_panel_enable(struct dsi_panel *panel)
 
 error:
 	mutex_unlock(&panel->panel_lock);
+	g_notify_data.blank = XIAOMI_PANEL_BLANK_UNBLANK;
+	xiaomi_panel_notifier_call_chain(XIAOMI_PANEL_EVENT_BLANK, &g_notify_data);
 	return rc;
 }
 
@@ -4933,6 +4952,9 @@ int dsi_panel_disable(struct dsi_panel *panel)
 		DSI_ERR("invalid params\n");
 		return -EINVAL;
 	}
+
+	g_notify_data.blank = XIAOMI_PANEL_BLANK_POWERDOWN;
+	xiaomi_panel_notifier_call_chain(XIAOMI_PANEL_EARLY_EVENT_BLANK, &g_notify_data);
 
 	mutex_lock(&panel->panel_lock);
 
@@ -5007,7 +5029,15 @@ int dsi_panel_post_unprepare(struct dsi_panel *panel)
 		       panel->name, rc);
 		goto error;
 	}
+
+	if (touch_priximity_enable || touch_gesture_enable) {
+		pr_info("[LCD]%s:touch_promixity_enable or touch gesture enable\n",__func__);
+	} else {
+	ocp2131_disable();
+	}
 error:
 	mutex_unlock(&panel->panel_lock);
+	g_notify_data.blank = XIAOMI_PANEL_BLANK_POWERDOWN;
+	xiaomi_panel_notifier_call_chain(XIAOMI_PANEL_EVENT_BLANK, &g_notify_data);
 	return rc;
 }
