@@ -75,6 +75,13 @@ enum dsi_panel_id {
 	PANEL_42_03_0C,
 };
 
+enum DISPPARAM_MODE {
+	DISPPARAM_CABCUI_ON = 0x100,
+	DISPPARAM_CABCSTILL_ON = 0x200,
+	DISPPARAM_CABCMOVIE_ON = 0x300,
+	DISPPARAM_CABC_OFF = 0x400,
+};
+
 enum bl_update_flag {
 	BL_UPDATE_DELAY_UNTIL_FIRST_FRAME,
 	BL_UPDATE_NONE,
@@ -431,4 +438,6 @@ int dsi_panel_create_cmd_packets(const char *data, u32 length, u32 count,
 void dsi_panel_destroy_cmd_packets(struct dsi_panel_cmd_set *set);
 
 void dsi_panel_dealloc_cmd_packets(struct dsi_panel_cmd_set *set);
+
+int dsi_panel_tx_cmd_set(struct dsi_panel *panel, enum dsi_cmd_set_type type);
 #endif /* _DSI_PANEL_H_ */
