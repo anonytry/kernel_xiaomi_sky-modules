@@ -47,6 +47,7 @@ static struct xiaomi_panel_notify_data g_notify_data;
 extern bool touch_priximity_enable;
 extern bool touch_gesture_enable;
 extern int m19_panel_id;
+extern bool is_panel_m19_36_02_0a;
 static void dsi_dce_prepare_pps_header(char *buf, u32 pps_delay_ms)
 {
 	char *bp;
@@ -374,6 +375,10 @@ static int dsi_panel_power_on(struct dsi_panel *panel)
 	if (rc) {
 		DSI_ERR("[%s] failed to set pinctrl, rc=%d\n", panel->name, rc);
 		goto error_disable_vregs;
+	}
+	if (m19_panel_id != PANEL_36_02_0A) {
+		gpio_set_value(panel->reset_config.reset_gpio, 0);
+		usleep_range(4 * 1000,(4 * 1000) + 100);
 	}
 	ocp2131_enable();
 	ktd3136_reg_init(m19_panel_id);
@@ -4856,10 +4861,9 @@ static int panel_disp_param_send_lock(struct dsi_panel *panel, int param)
 		rc = dsi_panel_tx_cmd_set(panel, DSI_CMD_SET_CABC_OFF);
 		break;
 	default:
-		pr_info("[drm] unknown cabc mode type:0x%x\n", temp);
+	        hbm_set_mode(m19_panel_id,param & 0x000F0000);
 		break;
 	}
-	hbm_set_mode(m19_panel_id,param & 0x000F0000);
 	mutex_unlock(&panel->panel_lock);
 	return rc;
 }
@@ -5037,7 +5041,12 @@ int dsi_panel_disable(struct dsi_panel *panel)
 			panel->power_mode == SDE_MODE_DPMS_LP2))
 			dsi_pwr_panel_regulator_mode_set(&panel->power_info,
 				"ibb", REGULATOR_MODE_STANDBY);
-		rc = dsi_panel_tx_cmd_set(panel, DSI_CMD_SET_OFF);
+		pr_info("[LCD]%s:tp_promixity_en_init_power enable is %d\n",__func__,touch_priximity_enable);
+		if (touch_priximity_enable && is_panel_m19_36_02_0a) {
+			rc = dsi_panel_tx_cmd_set(panel, DSI_CMD_STE_PROXIMITY_OFF);
+		} else {
+			rc = dsi_panel_tx_cmd_set(panel, DSI_CMD_SET_OFF);
+		}
 		if (rc) {
 			/*
 			 * Sending panel off commands may fail when  DSI

@@ -41,11 +41,11 @@ u8 dbgfs_tx_cmd_buf[SZ_4K];
 static char dsi_display_primary[MAX_CMDLINE_PARAM_LEN];
 static char dsi_display_secondary[MAX_CMDLINE_PARAM_LEN];
 
-struct dsi_display *global_dsi_display = NULL;
-
 bool touch_priximity_enable = false;
 bool touch_gesture_enable = false;
 int m19_panel_id=0;
+
+extern bool is_panel_m19_36_02_0a;
 
 static struct dsi_display_boot_param boot_displays[MAX_DSI_ACTIVE_DISPLAY] = {
 	{.boot_param = dsi_display_primary},
@@ -6146,6 +6146,7 @@ int dsi_display_dev_probe(struct platform_device *pdev)
 
 	if (strstr(boot_disp->name, "m19_36_02_0a")) {
 	m19_panel_id = PANEL_36_02_0A;
+	is_panel_m19_36_02_0a = 1;
 	} else if (strstr(boot_disp->name, "m19_42_03_0b")) {
         m19_panel_id = PANEL_42_03_0B;
 	} else if (strstr(boot_disp->name, "m19_42_03_0c")) {
@@ -6221,7 +6222,6 @@ int dsi_display_dev_probe(struct platform_device *pdev)
 	} else {
 		pr_info("%s: line %d: Device create disp_param file success!\n", __func__, __LINE__);
 	}
-	global_dsi_display = display;
 	return 0;
 end:
 	if (display)
