@@ -93,13 +93,8 @@ void fsm_firmware_deinit(void);
 #if defined(CONFIG_FSM_CODEC)
 #include <sound/soc.h>
 #include <linux/version.h>
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 19, 0))
-#define snd_soc_codec              snd_soc_component
-#define snd_soc_add_codec_controls snd_soc_add_component_controls
-#define snd_soc_codec_get_drvdata  snd_soc_component_get_drvdata
-#endif
 void fsm_add_card_controls(struct snd_soc_card *card);
-void fsm_add_codec_controls(struct snd_soc_codec *codec);
+void fsm_add_codec_controls(struct snd_soc_component *codec);
 //void fsm_add_platform_controls(struct snd_soc_platform *platform);
 #else
 #define fsm_add_card_controls(...)

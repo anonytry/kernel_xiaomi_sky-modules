@@ -176,11 +176,11 @@ static const struct snd_kcontrol_new fsm_snd_controls[] =
 			fsm_amp_select_get, fsm_amp_select_put),
 };
 
-void fsm_add_codec_controls(struct snd_soc_codec *codec)
+void fsm_add_codec_controls(struct snd_soc_component *codec)
 {
 	atomic_set(&fsm_amp_switch, 0);
 	atomic_set(&fsm_amp_select, 0xF);
-	snd_soc_add_codec_controls(codec, fsm_snd_controls,
+	snd_soc_add_component_controls(codec, fsm_snd_controls,
 			ARRAY_SIZE(fsm_snd_controls));
 }
 EXPORT_SYMBOL(fsm_add_codec_controls);
