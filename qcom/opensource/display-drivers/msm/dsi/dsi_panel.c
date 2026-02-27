@@ -5042,8 +5042,10 @@ int dsi_panel_disable(struct dsi_panel *panel)
 			dsi_pwr_panel_regulator_mode_set(&panel->power_info,
 				"ibb", REGULATOR_MODE_STANDBY);
 		pr_info("[LCD]%s:tp_promixity_en_init_power enable is %d\n",__func__,touch_priximity_enable);
-		if (touch_priximity_enable && is_panel_m19_36_02_0a) {
-			rc = dsi_panel_tx_cmd_set(panel, DSI_CMD_STE_PROXIMITY_OFF);
+		if (touch_priximity_enable){
+			if (m19_panel_id == PANEL_36_02_0A) {
+				rc = dsi_panel_tx_cmd_set(panel, DSI_CMD_STE_PROXIMITY_OFF);
+			}
 		} else {
 			rc = dsi_panel_tx_cmd_set(panel, DSI_CMD_SET_OFF);
 		}
