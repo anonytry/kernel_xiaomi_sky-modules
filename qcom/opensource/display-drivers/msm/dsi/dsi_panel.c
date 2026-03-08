@@ -415,7 +415,7 @@ static int dsi_panel_power_off(struct dsi_panel *panel)
 
 	if (gpio_is_valid(panel->reset_config.reset_gpio) &&
 					!panel->reset_gpio_always_on)
-		gpio_set_value(panel->reset_config.reset_gpio, 0);
+		gpio_set_value(panel->reset_config.reset_gpio, 1);
 
 	if (gpio_is_valid(panel->reset_config.lcd_mode_sel_gpio))
 		gpio_set_value(panel->reset_config.lcd_mode_sel_gpio, 0);
@@ -5102,17 +5102,17 @@ int dsi_panel_post_unprepare(struct dsi_panel *panel)
 
 	mutex_lock(&panel->panel_lock);
 
+        if (touch_priximity_enable || touch_gesture_enable) {
+                pr_info("[LCD]%s:touch_promixity_enable or touch gesture enable\n",__func__);
+        } else {
+        ocp2131_disable();
+        }
+
 	rc = dsi_panel_power_off(panel);
 	if (rc) {
 		DSI_ERR("[%s] panel power_Off failed, rc=%d\n",
 		       panel->name, rc);
 		goto error;
-	}
-
-	if (touch_priximity_enable || touch_gesture_enable) {
-		pr_info("[LCD]%s:touch_promixity_enable or touch gesture enable\n",__func__);
-	} else {
-	ocp2131_disable();
 	}
 error:
 	mutex_unlock(&panel->panel_lock);
