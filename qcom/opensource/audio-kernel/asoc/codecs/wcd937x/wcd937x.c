@@ -1040,6 +1040,15 @@ static char *aw_profile[] = {"Music", "Voice", "Voip",
 		"Ringtone", "Ringtone_hs", "Lowpower", "Bypass", "Mmi",
 		"Fm", "Notification", "Receiver", "Off"};
 
+static int wcd937x_awinic_profile_put(struct snd_kcontrol *kcontrol,
+    struct snd_ctl_elem_value *ucontrol)
+{
+    int ret = 0;
+    int profile = ucontrol->value.integer.value[0];
+    ret = aw87xxx_set_profile(AW_DEV_0, aw_profile[profile]);
+    return 0;
+}
+
 static int wcd937x_codec_enable_aux_pa(struct snd_soc_dapm_widget *w,
 				       struct snd_kcontrol *kcontrol,
 				       int event)
@@ -2387,6 +2396,8 @@ static const struct snd_kcontrol_new wcd937x_snd_controls[] = {
 		wcd937x_tx_ch_pwr_level_get, wcd937x_tx_ch_pwr_level_put),
 	SOC_ENUM_EXT("TX CH3 PWR", wcd937x_tx_ch_pwr_level_enum,
 		wcd937x_tx_ch_pwr_level_get, wcd937x_tx_ch_pwr_level_put),
+	SOC_SINGLE_EXT("Awinic Profile", SND_SOC_NOPM, 0, 15, 0,
+                   NULL, wcd937x_awinic_profile_put),
 };
 
 static const struct snd_kcontrol_new adc1_switch[] = {
