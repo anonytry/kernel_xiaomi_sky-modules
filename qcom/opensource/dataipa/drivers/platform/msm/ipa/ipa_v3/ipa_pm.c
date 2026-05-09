@@ -433,7 +433,7 @@ static void activate_work_func(struct work_struct *work)
 	if (dec_clk) {
 		if (!client->skip_clk_vote) {
 			IPA_ACTIVE_CLIENTS_DEC_SPECIAL(client->name);
-			if (client->group == IPA_PM_GROUP_APPS)
+			if (client->group == IPA_PM_GROUP_APPS && client->wlock)
 				__pm_relax(client->wlock);
 		}
 
@@ -494,7 +494,7 @@ static void delayed_deferred_deactivate_work_func(struct work_struct *work)
 		spin_unlock_irqrestore(&client->state_lock, flags);
 		if (!client->skip_clk_vote) {
 			IPA_ACTIVE_CLIENTS_DEC_SPECIAL(client->name);
-			if (client->group == IPA_PM_GROUP_APPS)
+			if (client->group == IPA_PM_GROUP_APPS && client->wlock)
 				__pm_relax(client->wlock);
 		}
 
@@ -789,12 +789,15 @@ int ipa_pm_register(struct ipa_pm_register_params *params, u32 *hdl)
 	client->group = params->group;
 	client->hdl = *hdl;
 	client->skip_clk_vote = params->skip_clk_vote;
-	client->wlock = wakeup_source_register(NULL, client->name);
-	if (!client->wlock) {
-		ipa_pm_deregister(*hdl);
-		IPA_PM_ERR("IPA wakeup source register failed %s\n",
-			client->name);
-		return -ENOMEM;
+	if (strcmp(client->name, "IPA_CLIENT_APPS_LAN_CONS") &&
+		strcmp(client->name, "IPA_CLIENT_APPS_WAN_CONS")) {
+		client->wlock = wakeup_source_register(NULL, client->name);
+		if (!client->wlock) {
+			ipa_pm_deregister(*hdl);
+			IPA_PM_ERR("IPA wakeup source register failed %s\n",
+				client->name);
+			return -ENOMEM;
+		}
 	}
 
 	init_completion(&client->complete);
@@ -1218,7 +1221,7 @@ int ipa_pm_deactivate_sync(u32 hdl)
 	/* else case (Deactivates all Activated cases)*/
 	if (!client->skip_clk_vote) {
 		IPA_ACTIVE_CLIENTS_DEC_SPECIAL(client->name);
-		if (client->group == IPA_PM_GROUP_APPS)
+		if (client->group == IPA_PM_GROUP_APPS && client->wlock)
 			__pm_relax(client->wlock);
 	}
 
