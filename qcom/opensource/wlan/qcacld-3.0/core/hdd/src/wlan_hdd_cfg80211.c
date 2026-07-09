@@ -762,7 +762,7 @@ static struct ieee80211_iface_combination
 	{
 		.limits = wlan_hdd_sta_ap_iface_limit,
 		.num_different_channels = 2,
-		.max_interfaces = (1 + QDF_MAX_NO_OF_SAP_MODE),
+		.max_interfaces = 2,
 		.n_limits = ARRAY_SIZE(wlan_hdd_sta_ap_iface_limit),
 		.beacon_int_infra_match = true,
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0)) || \
